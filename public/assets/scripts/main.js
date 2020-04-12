@@ -21,25 +21,23 @@ navigator.getUserMedia = navigator.getUserMedia ||
     navigator.msGetUserMedia;
 
 var pc = new peerConnection({
-    iceServers: [{
-        url: "stun:stun.services.mozilla.com",
-        username: "somename",
-        credential: "somecredentials"
-    }]
+    iceServers: [{ url: "stun:stun4.l.google.com:19302" }, { url: "turn:dev.e-kasbon.co.id:3478", username: '123', credential: '123' }, { url: 'turn:numb.viagenie.ca:3478', username: 'fonetix@gmail.com', credential: 'goer1thea' }]
 });
 
-pc.onaddstream = function(obj) {
+pc.onaddstream = function (obj) {
     var vid = document.createElement('video');
     vid.setAttribute('class', 'video-small');
     vid.setAttribute('autoplay', 'autoplay');
     vid.setAttribute('id', 'video-small');
     document.getElementById('users-container').appendChild(vid);
-    vid.src = window.URL.createObjectURL(obj.stream);
+    //vid.src = window.URL.createObjectURL(obj.stream);
+    vid.srcObject = obj.stream;
 };
 
-navigator.getUserMedia({ video: true }, function(stream) {
+navigator.getUserMedia({ video: true }, function (stream) {
     var video = document.querySelector('video');
-    video.src = window.URL.createObjectURL(stream);
+    //video.src = window.URL.createObjectURL(stream);
+    video.srcObject = stream
     pc.addStream(stream);
 }, error);
 
@@ -48,8 +46,8 @@ function error(err) {
 }
 
 function createOffer(id) {
-    pc.createOffer(function(offer) {
-        pc.setLocalDescription(new sessionDescription(offer), function() {
+    pc.createOffer(function (offer) {
+        pc.setLocalDescription(new sessionDescription(offer), function () {
             socket.emit('make-offer', {
                 offer: offer,
                 to: id
@@ -58,8 +56,8 @@ function createOffer(id) {
     }, error);
 }
 
-socket.on('answer-made', function(data) {
-    pc.setRemoteDescription(new sessionDescription(data.answer), function() {
+socket.on('answer-made', function (data) {
+    pc.setRemoteDescription(new sessionDescription(data.answer), function () {
         document.getElementById(data.socket).setAttribute('class', 'active');
         if (!answersFrom[data.socket]) {
             createOffer(data.socket);
@@ -68,12 +66,12 @@ socket.on('answer-made', function(data) {
     }, error);
 });
 
-socket.on('offer-made', function(data) {
+socket.on('offer-made', function (data) {
     offer = data.offer;
 
-    pc.setRemoteDescription(new sessionDescription(data.offer), function() {
-        pc.createAnswer(function(answer) {
-            pc.setLocalDescription(new sessionDescription(answer), function() {
+    pc.setRemoteDescription(new sessionDescription(data.offer), function () {
+        pc.createAnswer(function (answer) {
+            pc.setLocalDescription(new sessionDescription(answer), function () {
                 socket.emit('make-answer', {
                     answer: answer,
                     to: data.socket
@@ -83,21 +81,21 @@ socket.on('offer-made', function(data) {
     }, error);
 });
 
-socket.on('add-users', function(data) {
+socket.on('add-users', function (data) {
     for (var i = 0; i < data.users.length; i++) {
         var el = document.createElement('div'),
             id = data.users[i];
 
         el.setAttribute('id', id);
         el.innerHTML = id;
-        el.addEventListener('click', function() {
+        el.addEventListener('click', function () {
             createOffer(id);
         });
         document.getElementById('users').appendChild(el);
     }
 });
 
-socket.on('remove-user', function(id) {
+socket.on('remove-user', function (id) {
     var div = document.getElementById(id);
     document.getElementById('users').removeChild(div);
 });
